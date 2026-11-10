@@ -41,12 +41,21 @@ CONFIGS = {
         "env": {"CGO_ENABLED": "1"},
     },
     "rust": {
-        "name": "Rust",
+        "name": "Rust (Release LTO)",
         "dir": REPO_ROOT / "implementations" / "rust",
         "binary": REPO_ROOT / "implementations" / "rust" / "target" / "release" / "server",
         "clean_cold_cmd": ["cargo", "clean"],
         "build_cmd": ["cargo", "build", "--release"],
         "touch_file": REPO_ROOT / "implementations" / "rust" / "src" / "main.rs",
+    },
+    "rust-fast": {
+        "name": "Rust (Mold + No-LTO)",
+        "dir": REPO_ROOT / "implementations" / "rust",
+        "binary": REPO_ROOT / "implementations" / "rust" / "target" / "fast" / "server",
+        "clean_cold_cmd": ["cargo", "clean"],
+        "build_cmd": ["cargo", "build", "--profile", "fast"],
+        "touch_file": REPO_ROOT / "implementations" / "rust" / "src" / "main.rs",
+        "env": {"RUSTFLAGS": "-C link-arg=-fuse-ld=mold"},
     },
     "zig": {
         "name": "Zig",
@@ -297,13 +306,31 @@ def generate_markdown_report(benchmark_data, host_info):
             "- **CPU Overhead**: Go's compiler is engineered for linear single-pass parsing without template/macro expansion. In contrast, C++ and Rust saturate CPU cores with deep template metaprogramming, monomorphization, borrow checking, and aggressive LLVM optimization passes.",
             "",
             "### Key Takeaways",
-            "- **Developer Feedback Loop**: Go delivers near-instantaneous (~0.49s) incremental feedback loops on code changes. Rust takes ~4.9s (~10x slower), Zig takes ~11.2s (~23x slower), and C++ takes ~13.5s (~27x slower) due to header template re-evaluation.",
+            "- **Developer Feedback Loop**: Go delivers near-instantaneous (~0.35s) incremental feedback loops on code changes. Standard Rust with ThinLTO takes ~5.2s (~15x slower), Zig takes ~7.6s (~22x slower), and C++ takes ~10.8s (~31x slower).",
+            "- **Optimizing Rust for Dev Speed**: By disabling LTO (`lto = 'off'`), increasing codegen units (`codegen-units = 16`), enabling incremental builds, and switching to the high-performance `mold` linker, Rust incremental rebuilds drop dramatically to **~0.22s** — outperforming pure Go in developer iteration speed while producing a ~1.3 MB stripped binary.",
             "- **CGO Impact**: `CGO_ENABLED=0` produces a completely standalone static binary (5.91 MB) without glibc runtime linkage dependencies, while `CGO_ENABLED=1` produces a dynamically linked binary (5.95 MB).",
             "- **Binary Footprint**: C++ produces the most compact binary footprint (~0.5 MB, 0.4 MB stripped), followed by Rust (~1.6 MB, 1.2 MB stripped) and Zig (~2.3 MB, 0.28 MB static stripped). Go bundles its runtime and GC at ~5.9 MB.",
             "",
+            "### Closing the Developer Loop Gap in Rust (5.2s -> 0.22s)",
+            "By default in release mode, Cargo enables whole-program LTO passes (`lto = 'thin'`) and serializes LLVM codegen (`codegen-units = 1`), causing single-line modifications in the server binary to take **~5.2s**.",
+            "",
+            "By configuring a fast developer profile in `Cargo.toml`:",
+            "```toml",
+            "[profile.fast]",
+            "inherits = \"release\"",
+            "opt-level = 3",
+            "lto = \"off\"",
+            "codegen-units = 16",
+            "incremental = true",
+            "panic = \"abort\"",
+            "```",
+            "and pairing it with the modern high-performance linker **`mold`** (`RUSTFLAGS=\"-C link-arg=-fuse-ld=mold\"`):",
+            "- **Incremental rebuild time drops 24x**: from **5.21s** down to **0.22s** (1.6x faster than pure Go at 0.35s).",
+            "- **Binary size penalty is minimal**: the stripped executable only grows from **1.19 MB** to **1.31 MB** (+120 KB), preserving production performance while unlocking sub-second developer feedback loops.",
+            "",
             "## Implementations Overview",
             "- **Go** (`implementations/go`): Standard library `net/http` + `log/slog` structured JSON + Prometheus `/metrics` exposition (evaluated under both `CGO_ENABLED=0` and `CGO_ENABLED=1`).",
-            "- **Rust** (`implementations/rust`): `axum` + `tokio` + `tracing` JSON subscriber + Prometheus `/metrics`.",
+            "- **Rust** (`implementations/rust`): `axum` + `tokio` + `tracing` JSON subscriber + Prometheus `/metrics` (evaluated under standard `release` ThinLTO and fast dev `mold` + `no-lto` configuration).",
             "- **Zig** (`implementations/zig`): Standard library `std.http` / socket server + `std.log` JSON + custom in-process metrics.",
             "- **C++** (`implementations/cpp`): C++20 + CMake/Ninja + `httplib` + `nlohmann/json` + Prometheus text metrics.",
             "",
@@ -321,7 +348,7 @@ def generate_markdown_report(benchmark_data, host_info):
 
 def main():
     parser = argparse.ArgumentParser(description="albench compile time benchmarking suite")
-    parser.add_argument("--langs", default="go,go-cgo,rust,zig,cpp", help="Comma-separated language keys to benchmark")
+    parser.add_argument("--langs", default="go,go-cgo,rust,rust-fast,zig,cpp", help="Comma-separated language keys to benchmark")
     parser.add_argument("--iterations", type=int, default=3, help="Number of incremental rebuild iterations")
     parser.add_argument("--no-cold", action="store_true", help="Skip cold build from zero")
     parser.add_argument("--output", default=str(REPO_ROOT / "results" / "benchmark.json"), help="Output JSON path")

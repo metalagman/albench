@@ -79,5 +79,16 @@ else
     echo "✓ Zig installed: $(zig version)"
 fi
 
+# 7. Provision / Check Mold Linker
+if command -v mold >/dev/null 2>&1; then
+    echo "✓ Mold found: $(mold --version | head -n 1)"
+else
+    echo "Installing Mold linker to ~/.local/..."
+    MOLD_VERSION="2.36.0"
+    MOLD_TAR="mold-${MOLD_VERSION}-x86_64-linux.tar.gz"
+    curl -fsSL "https://github.com/rui314/mold/releases/download/v${MOLD_VERSION}/${MOLD_TAR}" | tar -xz -C "$HOME/.local" --strip-components=1
+    echo "✓ Mold installed: $(mold --version | head -n 1)"
+fi
+
 echo "=========================================================="
 echo "All 4 toolchains (Go, Rust, Zig, C++) and build tools verified!"
