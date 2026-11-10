@@ -23,14 +23,24 @@ os.environ["PATH"] = f"{HOME}/.local/bin:{HOME}/.cargo/bin:{os.environ.get('PATH
 
 CONFIGS = {
     "go": {
-        "name": "Go",
+        "name": "Go (CGO=0)",
         "dir": REPO_ROOT / "implementations" / "go",
         "binary": REPO_ROOT / "implementations" / "go" / "bin" / "server",
         "clean_cold_cmd": ["go", "clean", "-cache"],
-        "clean_warm_cmd": ["rm", "-rf", "bin"],
+        "clean_warm_cmd": ["rm", "-rf", "bin/server"],
         "build_cmd": ["go", "build", "-ldflags=-s -w", "-o", "bin/server", "."],
         "touch_file": REPO_ROOT / "implementations" / "go" / "main.go",
         "env": {"CGO_ENABLED": "0"},
+    },
+    "go-cgo": {
+        "name": "Go (CGO=1)",
+        "dir": REPO_ROOT / "implementations" / "go",
+        "binary": REPO_ROOT / "implementations" / "go" / "bin" / "server-cgo",
+        "clean_cold_cmd": ["go", "clean", "-cache"],
+        "clean_warm_cmd": ["rm", "-rf", "bin/server-cgo"],
+        "build_cmd": ["go", "build", "-ldflags=-s -w", "-o", "bin/server-cgo", "."],
+        "touch_file": REPO_ROOT / "implementations" / "go" / "main.go",
+        "env": {"CGO_ENABLED": "1"},
     },
     "rust": {
         "name": "Rust",
@@ -235,7 +245,9 @@ def generate_markdown_report(benchmark_data, host_info):
         )
 
     # Add relative comparison against Go
-    go_item = next((item for item in benchmark_data if item["language"].lower() == "go"), None)
+    go_item = next((item for item in benchmark_data if "go (cgo=0)" in item["language"].lower()), None)
+    if not go_item:
+        go_item = next((item for item in benchmark_data if "go" in item["language"].lower()), None)
     if go_item:
         go_cold = go_item["cold_build"]["duration_sec"] if go_item.get("cold_build") else 1.0
         go_warm = go_item["warm_clean"]["mean_sec"]
@@ -264,7 +276,7 @@ def generate_markdown_report(benchmark_data, host_info):
 
         for item in benchmark_data:
             lang = item["language"]
-            if lang.lower() == "go":
+            if item["language"] == go_item["language"]:
                 lines.append(f"| **{lang}** | **1.0x (baseline, {go_cold:.2f}s)** | **1.0x (baseline, {go_warm:.3f}s)** | **1.0x (baseline, {go_inc:.3f}s)** | **{go_rss:.1f} MB (baseline)** | {go_size:.2f} MB (baseline) |")
             else:
                 cold_val = item["cold_build"]["duration_sec"] if item.get("cold_build") else None
@@ -280,8 +292,7 @@ def generate_markdown_report(benchmark_data, host_info):
                 rss_str = format_perf_diff(rss_val, go_rss, "more", "less")
                 
                 size_val = item["binary"]["size_mb"]
-                size_diff = ((size_val - go_size) / go_size) * 100
-                size_str = f"{size_diff:+.1f}% ({go_size / size_val:.1f}x smaller)"
+                size_str = format_perf_diff(size_val, go_size, "larger", "smaller")
 
                 lines.append(f"| **{lang}** | {cold_str} | {warm_str} | {inc_str} | {rss_str} | {size_str} |")
 
@@ -294,12 +305,13 @@ def generate_markdown_report(benchmark_data, host_info):
             "- **CPU Overhead**: Go's compiler is engineered for linear single-pass parsing without template/macro expansion. In contrast, C++ and Rust saturate CPU cores with deep template metaprogramming, monomorphization, borrow checking, and aggressive LLVM optimization passes.",
             "",
             "### Key Takeaways",
-            "- **Compile Speed**: Go demonstrates an order-of-magnitude faster warm clean compilation (~0.3s) compared to Rust (~6.8s), Zig (~14s), and C++ (~13.8s).",
-            "- **Incremental Rebuilds**: Go provides near-instantaneous (<0.5s) developer feedback loops on single-file edits.",
-            "- **Binary Footprint & Linkage**: C++ produces the most compact binary footprint (~0.5 MB), followed by Rust (~1.6 MB) and Zig (~2.3 MB). Go bundles its static runtime and GC metadata at ~5.9 MB with `CGO_ENABLED=0`.",
+            "- **Compile Speed**: Both Go configurations (`CGO=0` and `CGO=1`) compile in ~0.3s on warm clean builds, outperforming Rust (~6.8s) by >20x, and Zig (~15s) / C++ (~14s) by >40x.",
+            "- **Incremental Rebuilds**: Go provides near-instantaneous (<0.4s) developer feedback loops on single-file edits.",
+            "- **CGO Impact**: `CGO_ENABLED=0` produces a completely standalone static binary (5.91 MB) without glibc runtime linkage dependencies, while `CGO_ENABLED=1` produces a dynamically linked binary (5.95 MB).",
+            "- **Binary Footprint**: C++ produces the most compact binary footprint (~0.5 MB), followed by Rust (~1.6 MB) and Zig (~2.3 MB). Go bundles its runtime and GC at ~5.9 MB.",
             "",
             "## Implementations Overview",
-            "- **Go** (`implementations/go`): Standard library `net/http` + `log/slog` structured JSON + Prometheus `/metrics` exposition (`CGO_ENABLED=0` static binary).",
+            "- **Go** (`implementations/go`): Standard library `net/http` + `log/slog` structured JSON + Prometheus `/metrics` exposition (evaluated under both `CGO_ENABLED=0` and `CGO_ENABLED=1`).",
             "- **Rust** (`implementations/rust`): `axum` + `tokio` + `tracing` JSON subscriber + Prometheus `/metrics`.",
             "- **Zig** (`implementations/zig`): Standard library `std.http` / socket server + `std.log` JSON + custom in-process metrics.",
             "- **C++** (`implementations/cpp`): C++20 + CMake/Ninja + `httplib` + `nlohmann/json` + Prometheus text metrics.",
@@ -318,7 +330,7 @@ def generate_markdown_report(benchmark_data, host_info):
 
 def main():
     parser = argparse.ArgumentParser(description="albench compile time benchmarking suite")
-    parser.add_argument("--langs", default="go,rust,zig,cpp", help="Comma-separated language keys to benchmark")
+    parser.add_argument("--langs", default="go,go-cgo,rust,zig,cpp", help="Comma-separated language keys to benchmark")
     parser.add_argument("--iterations", type=int, default=3, help="Number of warm clean iterations")
     parser.add_argument("--no-cold", action="store_true", help="Skip cold build from zero")
     parser.add_argument("--output", default=str(REPO_ROOT / "results" / "benchmark.json"), help="Output JSON path")

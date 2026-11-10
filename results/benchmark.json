@@ -3,30 +3,30 @@
     "os": "Linux",
     "kernel": "6.18.26.1-microsoft-standard-WSL2",
     "cpu": "x86_64",
-    "date": "2026-11-10 04:38:18 UTC"
+    "date": "2026-11-10 04:43:34 UTC"
   },
   "results": [
     {
-      "language": "Go",
+      "language": "Go (CGO=0)",
       "cold_build": {
-        "duration_sec": 10.92,
-        "peak_rss_mb": 298.26
+        "duration_sec": 10.52,
+        "peak_rss_mb": 296.96
       },
       "warm_clean": {
         "runs_sec": [
-          0.29,
-          0.35
+          0.3,
+          0.3
         ],
-        "min_sec": 0.29,
-        "max_sec": 0.35,
-        "mean_sec": 0.32,
-        "median_sec": 0.32,
-        "stddev_sec": 0.042,
-        "peak_rss_mb": 123.57
+        "min_sec": 0.3,
+        "max_sec": 0.3,
+        "mean_sec": 0.3,
+        "median_sec": 0.3,
+        "stddev_sec": 0.0,
+        "peak_rss_mb": 123.87
       },
       "incremental_build": {
-        "duration_sec": 0.4,
-        "peak_rss_mb": 119.08
+        "duration_sec": 0.35,
+        "peak_rss_mb": 118.99
       },
       "binary": {
         "size_bytes": 6193314,
@@ -37,26 +37,56 @@
       }
     },
     {
-      "language": "Rust",
+      "language": "Go (CGO=1)",
       "cold_build": {
-        "duration_sec": 18.57,
-        "peak_rss_mb": 430.75
+        "duration_sec": 9.03,
+        "peak_rss_mb": 295.71
       },
       "warm_clean": {
         "runs_sec": [
-          6.23,
-          7.43
+          0.32,
+          0.33
         ],
-        "min_sec": 6.23,
-        "max_sec": 7.43,
-        "mean_sec": 6.83,
-        "median_sec": 6.83,
-        "stddev_sec": 0.849,
-        "peak_rss_mb": 319.73
+        "min_sec": 0.32,
+        "max_sec": 0.33,
+        "mean_sec": 0.325,
+        "median_sec": 0.325,
+        "stddev_sec": 0.007,
+        "peak_rss_mb": 121.49
       },
       "incremental_build": {
-        "duration_sec": 5.15,
-        "peak_rss_mb": 319.77
+        "duration_sec": 0.4,
+        "peak_rss_mb": 121.64
+      },
+      "binary": {
+        "size_bytes": 6242569,
+        "size_mb": 5.95,
+        "stripped_size_bytes": 6243360,
+        "stripped_size_mb": 5.95,
+        "linkage": "dynamically linked"
+      }
+    },
+    {
+      "language": "Rust",
+      "cold_build": {
+        "duration_sec": 18.05,
+        "peak_rss_mb": 428.5
+      },
+      "warm_clean": {
+        "runs_sec": [
+          6.64,
+          7.05
+        ],
+        "min_sec": 6.64,
+        "max_sec": 7.05,
+        "mean_sec": 6.845,
+        "median_sec": 6.845,
+        "stddev_sec": 0.29,
+        "peak_rss_mb": 319.83
+      },
+      "incremental_build": {
+        "duration_sec": 5.33,
+        "peak_rss_mb": 319.56
       },
       "binary": {
         "size_bytes": 1635944,
@@ -69,24 +99,24 @@
     {
       "language": "Zig",
       "cold_build": {
-        "duration_sec": 13.09,
-        "peak_rss_mb": 387.71
+        "duration_sec": 13.62,
+        "peak_rss_mb": 388.2
       },
       "warm_clean": {
         "runs_sec": [
-          15.37,
-          12.69
+          16.28,
+          14.83
         ],
-        "min_sec": 12.69,
-        "max_sec": 15.37,
-        "mean_sec": 14.03,
-        "median_sec": 14.03,
-        "stddev_sec": 1.895,
-        "peak_rss_mb": 387.86
+        "min_sec": 14.83,
+        "max_sec": 16.28,
+        "mean_sec": 15.555,
+        "median_sec": 15.555,
+        "stddev_sec": 1.025,
+        "peak_rss_mb": 388.11
       },
       "incremental_build": {
-        "duration_sec": 9.82,
-        "peak_rss_mb": 191.01
+        "duration_sec": 12.6,
+        "peak_rss_mb": 190.93
       },
       "binary": {
         "size_bytes": 2357560,
@@ -99,24 +129,24 @@
     {
       "language": "C++",
       "cold_build": {
-        "duration_sec": 10.22,
+        "duration_sec": 14.98,
         "peak_rss_mb": 552.72
       },
       "warm_clean": {
         "runs_sec": [
-          14.07,
-          13.54
+          15.16,
+          14.02
         ],
-        "min_sec": 13.54,
-        "max_sec": 14.07,
-        "mean_sec": 13.805,
-        "median_sec": 13.805,
-        "stddev_sec": 0.375,
-        "peak_rss_mb": 552.74
+        "min_sec": 14.02,
+        "max_sec": 15.16,
+        "mean_sec": 14.59,
+        "median_sec": 14.59,
+        "stddev_sec": 0.806,
+        "peak_rss_mb": 552.5
       },
       "incremental_build": {
-        "duration_sec": 13.47,
-        "peak_rss_mb": 552.73
+        "duration_sec": 14.69,
+        "peak_rss_mb": 552.4
       },
       "binary": {
         "size_bytes": 570160,
