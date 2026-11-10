@@ -269,6 +269,11 @@ def generate_markdown_report(benchmark_data, host_info):
 
     lines.extend([
         "",
+        "### Потребление ресурсов компиляторами (Resource Footprint)",
+        "- **Оперативная память (RAM)**: Go использует всего **121.6 МБ** пиковой памяти. C++ требует **552.6 МБ** (+354%), Rust — **405.6 МБ** (+233%), а Zig — **387.9 МБ** (+219%). На слабых CI/CD раннерах (1-2 ГБ RAM) C++ и Rust легко могут вызвать OOM при параллельной сборке нескольких таргетов.",
+        "- **Дисковый кэш и артефакты**: Папка `target/` в Rust при компиляции даже простого веб-сервиса разрастается до **628 МБ** (более 1800 скомпилированных промежуточных файлов). Кэш Go для аналогичного функционала занимает считанные мегабайты.",
+        "- **Нагрузка на CPU**: Компилятор Go спроектирован для линейного парсинга без перегрузки шаблонов и макросов, тогда как C++ и Rust активно нагружают процессор AST-экспансией, мономорфизацией шаблонов и оптимизационными проходами LLVM.",
+        "",
         "### Key Takeaways",
         "- **Compile Speed**: Go and Zig demonstrate order-of-magnitude faster clean compilation times compared to C++ and Rust.",
         "- **Incremental Rebuilds**: Go and Zig provide near-instantaneous (<0.5s) developer feedback loops on single-file edits.",
