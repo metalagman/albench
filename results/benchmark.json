@@ -1,0 +1,130 @@
+{
+  "host": {
+    "os": "Linux",
+    "kernel": "6.18.26.1-microsoft-standard-WSL2",
+    "cpu": "x86_64",
+    "date": "2026-11-10 03:51:14 UTC"
+  },
+  "results": [
+    {
+      "language": "Go",
+      "cold_build": {
+        "duration_sec": 10.8,
+        "peak_rss_mb": 285.16
+      },
+      "warm_clean": {
+        "runs_sec": [
+          0.38,
+          0.28
+        ],
+        "min_sec": 0.28,
+        "max_sec": 0.38,
+        "mean_sec": 0.33,
+        "median_sec": 0.33,
+        "stddev_sec": 0.071,
+        "peak_rss_mb": 121.64
+      },
+      "incremental_build": {
+        "duration_sec": 0.35,
+        "peak_rss_mb": 120.68
+      },
+      "binary": {
+        "size_bytes": 6242569,
+        "size_mb": 5.95,
+        "stripped_size_bytes": 6243360,
+        "stripped_size_mb": 5.95,
+        "linkage": "dynamically linked"
+      }
+    },
+    {
+      "language": "Rust",
+      "cold_build": {
+        "duration_sec": 18.75,
+        "peak_rss_mb": 429.47
+      },
+      "warm_clean": {
+        "runs_sec": [
+          11.1,
+          0.05
+        ],
+        "min_sec": 0.05,
+        "max_sec": 11.1,
+        "mean_sec": 5.575,
+        "median_sec": 5.575,
+        "stddev_sec": 7.814,
+        "peak_rss_mb": 405.55
+      },
+      "incremental_build": {
+        "duration_sec": 4.53,
+        "peak_rss_mb": 320.14
+      },
+      "binary": {
+        "size_bytes": 1635944,
+        "size_mb": 1.56,
+        "stripped_size_bytes": 1248272,
+        "stripped_size_mb": 1.19,
+        "linkage": "dynamically linked"
+      }
+    },
+    {
+      "language": "Zig",
+      "cold_build": {
+        "duration_sec": 14.57,
+        "peak_rss_mb": 387.98
+      },
+      "warm_clean": {
+        "runs_sec": [
+          12.85,
+          15.41
+        ],
+        "min_sec": 12.85,
+        "max_sec": 15.41,
+        "mean_sec": 14.13,
+        "median_sec": 14.13,
+        "stddev_sec": 1.81,
+        "peak_rss_mb": 387.87
+      },
+      "incremental_build": {
+        "duration_sec": 7.38,
+        "peak_rss_mb": 190.7
+      },
+      "binary": {
+        "size_bytes": 2357560,
+        "size_mb": 2.25,
+        "stripped_size_bytes": 290912,
+        "stripped_size_mb": 0.28,
+        "linkage": "static"
+      }
+    },
+    {
+      "language": "C++",
+      "cold_build": {
+        "duration_sec": 12.93,
+        "peak_rss_mb": 552.84
+      },
+      "warm_clean": {
+        "runs_sec": [
+          12.73,
+          10.1
+        ],
+        "min_sec": 10.1,
+        "max_sec": 12.73,
+        "mean_sec": 11.415,
+        "median_sec": 11.415,
+        "stddev_sec": 1.86,
+        "peak_rss_mb": 552.61
+      },
+      "incremental_build": {
+        "duration_sec": 12.66,
+        "peak_rss_mb": 552.51
+      },
+      "binary": {
+        "size_bytes": 570160,
+        "size_mb": 0.54,
+        "stripped_size_bytes": 421384,
+        "stripped_size_mb": 0.4,
+        "linkage": "dynamically linked"
+      }
+    }
+  ]
+}

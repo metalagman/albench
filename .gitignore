@@ -1,7 +1,19 @@
+# Beads lock
+.beads.gate.lock
 
-# Beads / Dolt files (added by bd init)
-.dolt/
-*.db
-.beads-credential-key
-.beads/proxieddb/
-*.gate.lock*
+# Build artifacts
+implementations/go/bin/
+implementations/rust/target/
+implementations/zig/zig-out/
+implementations/zig/.zig-cache/
+implementations/cpp/build/
+
+# Python cache & temp
+__pycache__/
+*.pyc
+/tmp/albench_*
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/
