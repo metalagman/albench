@@ -227,6 +227,46 @@ def generate_markdown_report(benchmark_data, host_info):
             f"{inc['duration_sec']:.3f} | {warm['peak_rss_mb']:.1f} | {bin_m['size_mb']} | {bin_m['stripped_size_mb']} |"
         )
 
+    # Add relative comparison against Go
+    go_item = next((item for item in benchmark_data if item["language"].lower() == "go"), None)
+    if go_item:
+        go_cold = go_item["cold_build"]["duration_sec"] if go_item.get("cold_build") else 1.0
+        go_warm = go_item["warm_clean"]["mean_sec"]
+        go_inc = go_item["incremental_build"]["duration_sec"]
+        go_rss = go_item["warm_clean"]["peak_rss_mb"]
+        go_size = go_item["binary"]["size_mb"]
+
+        lines.extend([
+            "",
+            "## Относительное сравнение производительности сборки (vs Go = 1.0x)",
+            "",
+            "| Язык | Холодная сборка с нуля | Тёплая чистая сборка (Warm Clean) | Инкрементальная пересборка | Потребление памяти (Peak RSS) | Размер бинарника |",
+            "|---|---|---|---|---|---|",
+        ])
+
+        for item in benchmark_data:
+            lang = item["language"]
+            if lang.lower() == "go":
+                lines.append(f"| **{lang}** | **1.0x (база, {go_cold:.2f}s)** | **1.0x (база, {go_warm:.3f}s)** | **1.0x (база, {go_inc:.3f}s)** | **{go_rss:.1f} MB (база)** | {go_size:.2f} MB (база) |")
+            else:
+                cold_val = item["cold_build"]["duration_sec"] if item.get("cold_build") else None
+                cold_str = f"+{((cold_val - go_cold) / go_cold * 100):.1f}% ({cold_val / go_cold:.1f}x медленнее)" if cold_val else "-"
+                
+                warm_val = item["warm_clean"]["mean_sec"]
+                warm_str = f"+{((warm_val - go_warm) / go_warm * 100):.1f}% ({warm_val / go_warm:.1f}x медленнее)"
+                
+                inc_val = item["incremental_build"]["duration_sec"]
+                inc_str = f"+{((inc_val - go_inc) / go_inc * 100):.1f}% ({inc_val / go_inc:.1f}x медленнее)"
+                
+                rss_val = item["warm_clean"]["peak_rss_mb"]
+                rss_str = f"+{((rss_val - go_rss) / go_rss * 100):.1f}% ({rss_val / go_rss:.1f}x больше)"
+                
+                size_val = item["binary"]["size_mb"]
+                size_diff = ((size_val - go_size) / go_size) * 100
+                size_str = f"{size_diff:+.1f}% (в {go_size / size_val:.1f}x компактнее)"
+
+                lines.append(f"| **{lang}** | {cold_str} | {warm_str} | {inc_str} | {rss_str} | {size_str} |")
+
     lines.extend([
         "",
         "### Key Takeaways",
