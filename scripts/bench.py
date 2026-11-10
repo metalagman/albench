@@ -27,7 +27,6 @@ CONFIGS = {
         "dir": REPO_ROOT / "implementations" / "go",
         "binary": REPO_ROOT / "implementations" / "go" / "bin" / "server",
         "clean_cold_cmd": ["go", "clean", "-cache"],
-        "clean_warm_cmd": ["rm", "-rf", "bin/server"],
         "build_cmd": ["go", "build", "-ldflags=-s -w", "-o", "bin/server", "."],
         "touch_file": REPO_ROOT / "implementations" / "go" / "main.go",
         "env": {"CGO_ENABLED": "0"},
@@ -37,7 +36,6 @@ CONFIGS = {
         "dir": REPO_ROOT / "implementations" / "go",
         "binary": REPO_ROOT / "implementations" / "go" / "bin" / "server-cgo",
         "clean_cold_cmd": ["go", "clean", "-cache"],
-        "clean_warm_cmd": ["rm", "-rf", "bin/server-cgo"],
         "build_cmd": ["go", "build", "-ldflags=-s -w", "-o", "bin/server-cgo", "."],
         "touch_file": REPO_ROOT / "implementations" / "go" / "main.go",
         "env": {"CGO_ENABLED": "1"},
@@ -47,7 +45,6 @@ CONFIGS = {
         "dir": REPO_ROOT / "implementations" / "rust",
         "binary": REPO_ROOT / "implementations" / "rust" / "target" / "release" / "server",
         "clean_cold_cmd": ["cargo", "clean"],
-        "clean_warm_cmd": ["cargo", "clean", "-p", "server", "--release"],
         "build_cmd": ["cargo", "build", "--release"],
         "touch_file": REPO_ROOT / "implementations" / "rust" / "src" / "main.rs",
     },
@@ -56,7 +53,6 @@ CONFIGS = {
         "dir": REPO_ROOT / "implementations" / "zig",
         "binary": REPO_ROOT / "implementations" / "zig" / "zig-out" / "bin" / "server",
         "clean_cold_cmd": ["rm", "-rf", ".zig-cache", "zig-out"],
-        "clean_warm_cmd": ["rm", "-rf", ".zig-cache", "zig-out"],
         "build_cmd": ["zig", "build", "-Doptimize=ReleaseFast"],
         "touch_file": REPO_ROOT / "implementations" / "zig" / "src" / "main.zig",
     },
@@ -65,7 +61,6 @@ CONFIGS = {
         "dir": REPO_ROOT / "implementations" / "cpp",
         "binary": REPO_ROOT / "implementations" / "cpp" / "build" / "server",
         "clean_cold_cmd": ["rm", "-rf", "build"],
-        "clean_warm_cmd": ["ninja", "-C", "build", "clean"],
         "build_cmd": ["ninja", "-C", "build", "server"],
         "configure_cmd": ["cmake", "-B", "build", "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release"],
         "touch_file": REPO_ROOT / "implementations" / "cpp" / "src" / "main.cpp",
@@ -144,14 +139,9 @@ def benchmark_lang(lang_key, cfg, run_cold=True, iterations=3):
     print(f"\n--- Benchmarking {cfg['name']} ({lang_key}) ---")
     results = {"language": cfg["name"]}
 
-    # Pre-configure if needed (e.g. C++ cmake configure)
-    if "configure_cmd" in cfg and not (cfg["dir"] / "build").exists():
-        print(f"[{cfg['name']}] Configuring build system...")
-        subprocess.run(cfg["configure_cmd"], cwd=cfg["dir"], check=True, stdout=subprocess.DEVNULL)
-
     cmd_env = cfg.get("env")
 
-    # 1. Cold Build
+    # 1. Cold Build from Zero
     if run_cold:
         print(f"[{cfg['name']}] Running Cold Build from zero...")
         subprocess.run(cfg["clean_cold_cmd"], cwd=cfg["dir"], env={**os.environ, **(cmd_env or {})}, check=True, stdout=subprocess.DEVNULL)
@@ -165,47 +155,49 @@ def benchmark_lang(lang_key, cfg, run_cold=True, iterations=3):
         print(f"  -> Cold Build: {results['cold_build']['duration_sec']}s (Peak RSS: {results['cold_build']['peak_rss_mb']} MB)")
     else:
         results["cold_build"] = None
+        if "configure_cmd" in cfg and not (cfg["dir"] / "build").exists():
+            subprocess.run(cfg["configure_cmd"], cwd=cfg["dir"], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(cfg["build_cmd"], cwd=cfg["dir"], env={**os.environ, **(cmd_env or {})}, check=True, stdout=subprocess.DEVNULL)
 
-    # 2. Warm Clean Builds (N iterations)
-    print(f"[{cfg['name']}] Running Warm Clean Builds ({iterations} iterations)...")
-    warm_times = []
-    warm_rss_list = []
-    for i in range(iterations):
-        subprocess.run(cfg["clean_warm_cmd"], cwd=cfg["dir"], check=True, stdout=subprocess.DEVNULL)
-        w_time, w_rss = run_command_with_timing(cfg["build_cmd"], cfg["dir"], env=cmd_env)
-        warm_times.append(w_time)
-        warm_rss_list.append(w_rss)
-        print(f"  -> Iteration {i+1}: {w_time:.3f}s")
-
-    results["warm_clean"] = {
-        "runs_sec": [round(t, 3) for t in warm_times],
-        "min_sec": round(min(warm_times), 3),
-        "max_sec": round(max(warm_times), 3),
-        "mean_sec": round(statistics.mean(warm_times), 3),
-        "median_sec": round(statistics.median(warm_times), 3),
-        "stddev_sec": round(statistics.stdev(warm_times) if len(warm_times) > 1 else 0.0, 3),
-        "peak_rss_mb": round(max(warm_rss_list) / 1024, 2),
+    # 2. No-Op Rebuild (zero code changes)
+    print(f"[{cfg['name']}] Running No-Op Rebuild (zero changes)...")
+    noop_time, _ = run_command_with_timing(cfg["build_cmd"], cfg["dir"], env=cmd_env)
+    results["noop_build"] = {
+        "duration_sec": round(noop_time, 3),
     }
+    print(f"  -> No-Op Rebuild: {results['noop_build']['duration_sec']}s")
 
-    # 3. Incremental Build
-    print(f"[{cfg['name']}] Running Incremental Build...")
+    # 3. Incremental Rebuilds (N iterations modifying application source)
+    print(f"[{cfg['name']}] Running Incremental Rebuilds ({iterations} iterations)...")
+    inc_times = []
+    inc_rss_list = []
     touch_file = cfg["touch_file"]
-    with open(touch_file, "a") as f:
-        f.write("\n// albench incremental build touch probe\n")
-    try:
-        inc_time, inc_rss = run_command_with_timing(cfg["build_cmd"], cfg["dir"], env=cmd_env)
-        results["incremental_build"] = {
-            "duration_sec": round(inc_time, 3),
-            "peak_rss_mb": round(inc_rss / 1024, 2),
-        }
-        print(f"  -> Incremental Build: {results['incremental_build']['duration_sec']}s")
-    finally:
-        # Revert the touch change
-        with open(touch_file, "r") as f:
-            content = f.read()
-        cleaned = content.replace("\n// albench incremental build touch probe\n", "")
-        with open(touch_file, "w") as f:
-            f.write(cleaned)
+
+    for i in range(iterations):
+        probe = f"\n// albench incremental probe {i}\n"
+        with open(touch_file, "a") as f:
+            f.write(probe)
+        try:
+            i_time, i_rss = run_command_with_timing(cfg["build_cmd"], cfg["dir"], env=cmd_env)
+            inc_times.append(i_time)
+            inc_rss_list.append(i_rss)
+            print(f"  -> Iteration {i+1}: {i_time:.3f}s (Peak RSS: {i_rss / 1024:.1f} MB)")
+        finally:
+            with open(touch_file, "r") as f:
+                content = f.read()
+            cleaned = content.replace(probe, "")
+            with open(touch_file, "w") as f:
+                f.write(cleaned)
+
+    results["incremental_build"] = {
+        "runs_sec": [round(t, 3) for t in inc_times],
+        "min_sec": round(min(inc_times), 3),
+        "max_sec": round(max(inc_times), 3),
+        "mean_sec": round(statistics.mean(inc_times), 3),
+        "median_sec": round(statistics.median(inc_times), 3),
+        "stddev_sec": round(statistics.stdev(inc_times) if len(inc_times) > 1 else 0.0, 3),
+        "peak_rss_mb": round(max(inc_rss_list) / 1024, 2),
+    }
 
     # 4. Binary Metrics
     binary_metrics = measure_binary(cfg["binary"])
@@ -229,38 +221,37 @@ def generate_markdown_report(benchmark_data, host_info):
         "",
         "## Compilation Benchmark Results",
         "",
-        "| Language | Cold Build from Zero (s) | Warm Clean Mean (s) | Warm Clean Median (s) | StdDev (s) | Incremental (s) | Peak RSS (MB) | Binary Size (MB) | Stripped Size (MB) |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| Language | Cold Build from Zero (s) | Incremental Mean (s) | Incremental Median (s) | StdDev (s) | No-Op (s) | Peak RSS (MB) | Binary Size (MB) | Stripped Size (MB) | Linkage |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
 
     for item in benchmark_data:
         lang = item["language"]
         cold = item["cold_build"]["duration_sec"] if item.get("cold_build") else "-"
-        warm = item["warm_clean"]
         inc = item["incremental_build"]
+        noop = item.get("noop_build", {}).get("duration_sec", "-")
         bin_m = item["binary"]
         lines.append(
-            f"| **{lang}** | {cold} | {warm['mean_sec']:.3f} | {warm['median_sec']:.3f} | ±{warm['stddev_sec']:.3f} | "
-            f"{inc['duration_sec']:.3f} | {warm['peak_rss_mb']:.1f} | {bin_m['size_mb']} | {bin_m['stripped_size_mb']} |"
+            f"| **{lang}** | {cold} | {inc['mean_sec']:.3f} | {inc['median_sec']:.3f} | ±{inc['stddev_sec']:.3f} | "
+            f"{noop} | {inc['peak_rss_mb']:.1f} | {bin_m['size_mb']} | {bin_m['stripped_size_mb']} | {bin_m['linkage']} |"
         )
 
-    # Add relative comparison against Go
+    # Add relative comparison against Go (CGO=0)
     go_item = next((item for item in benchmark_data if "go (cgo=0)" in item["language"].lower()), None)
     if not go_item:
         go_item = next((item for item in benchmark_data if "go" in item["language"].lower()), None)
     if go_item:
         go_cold = go_item["cold_build"]["duration_sec"] if go_item.get("cold_build") else 1.0
-        go_warm = go_item["warm_clean"]["mean_sec"]
-        go_inc = go_item["incremental_build"]["duration_sec"]
-        go_rss = go_item["warm_clean"]["peak_rss_mb"]
+        go_inc = go_item["incremental_build"]["mean_sec"]
+        go_rss = go_item["incremental_build"]["peak_rss_mb"]
         go_size = go_item["binary"]["size_mb"]
 
         lines.extend([
             "",
-            "## Relative Compilation Performance (vs Go = 1.0x)",
+            "## Relative Compilation Performance (vs Go CGO=0 = 1.0x)",
             "",
-            "| Language | Cold Build from Zero | Warm Clean Build | Incremental Rebuild | Memory Usage (Peak RSS) | Binary Size |",
-            "|---|---|---|---|---|---|",
+            "| Language | Cold Build from Zero | Incremental Rebuild (Dev Loop) | Memory Usage (Peak RSS) | Binary Size |",
+            "|---|---|---|---|---|",
         ])
 
         def format_perf_diff(val, base_val, slower_label="slower", faster_label="faster"):
@@ -277,38 +268,38 @@ def generate_markdown_report(benchmark_data, host_info):
         for item in benchmark_data:
             lang = item["language"]
             if item["language"] == go_item["language"]:
-                lines.append(f"| **{lang}** | **1.0x (baseline, {go_cold:.2f}s)** | **1.0x (baseline, {go_warm:.3f}s)** | **1.0x (baseline, {go_inc:.3f}s)** | **{go_rss:.1f} MB (baseline)** | {go_size:.2f} MB (baseline) |")
+                lines.append(f"| **{lang}** | **1.0x (baseline, {go_cold:.2f}s)** | **1.0x (baseline, {go_inc:.3f}s)** | **{go_rss:.1f} MB (baseline)** | {go_size:.2f} MB (baseline) |")
             else:
                 cold_val = item["cold_build"]["duration_sec"] if item.get("cold_build") else None
                 cold_str = format_perf_diff(cold_val, go_cold, "slower", "faster")
                 
-                warm_val = item["warm_clean"]["mean_sec"]
-                warm_str = format_perf_diff(warm_val, go_warm, "slower", "faster")
-                
-                inc_val = item["incremental_build"]["duration_sec"]
+                inc_val = item["incremental_build"]["mean_sec"]
                 inc_str = format_perf_diff(inc_val, go_inc, "slower", "faster")
                 
-                rss_val = item["warm_clean"]["peak_rss_mb"]
+                rss_val = item["incremental_build"]["peak_rss_mb"]
                 rss_str = format_perf_diff(rss_val, go_rss, "more", "less")
                 
                 size_val = item["binary"]["size_mb"]
                 size_str = format_perf_diff(size_val, go_size, "larger", "smaller")
 
-                lines.append(f"| **{lang}** | {cold_str} | {warm_str} | {inc_str} | {rss_str} | {size_str} |")
+                lines.append(f"| **{lang}** | {cold_str} | {inc_str} | {rss_str} | {size_str} |")
 
-        # Dynamic takeaways and resource footprint
         lines.extend([
             "",
+            "### Methodology & Scenarios",
+            "- **Cold Build from Zero**: Measures clean compilation time and peak memory consumption (CI/CD runner or container build from scratch).",
+            "- **Incremental Rebuild (Dev Loop)**: The core developer experience metric. A single source file is modified, and the project is recompiled with all dependency caches warm.",
+            "- **No-Op Rebuild**: Verifies build system dependency freshness and null-build overhead when zero source files have changed.",
+            "",
             "### Compiler Resource Footprint",
-            f"- **Memory Footprint (RAM)**: Go requires only **{go_rss:.1f} MB** peak RSS. In comparison, C++, Rust, and Zig consume significantly more RAM during compilation. On resource-constrained CI/CD runners (1–2 GB RAM), heavy template expansion and LLVM backend pipelines can cause Out-Of-Memory (OOM) failures under parallel jobs.",
+            f"- **Memory Footprint (RAM)**: Go requires only **{go_rss:.1f} MB** peak RSS during incremental rebuilds. In comparison, C++, Rust, and Zig consume significantly more RAM during compilation. On resource-constrained CI/CD runners (1–2 GB RAM), heavy template expansion and LLVM backend pipelines can cause Out-Of-Memory (OOM) failures under parallel jobs.",
             "- **Disk Artifacts & Build Cache**: Rust's `target/` directory balloons to **>600 MB** across intermediate files for an API service. Go's build cache footprint remains minimal, avoiding heavy I/O overhead.",
             "- **CPU Overhead**: Go's compiler is engineered for linear single-pass parsing without template/macro expansion. In contrast, C++ and Rust saturate CPU cores with deep template metaprogramming, monomorphization, borrow checking, and aggressive LLVM optimization passes.",
             "",
             "### Key Takeaways",
-            "- **Compile Speed**: Both Go configurations (`CGO=0` and `CGO=1`) compile in ~0.3s on warm clean builds, outperforming Rust (~6.8s) by >20x, and Zig (~15s) / C++ (~14s) by >40x.",
-            "- **Incremental Rebuilds**: Go provides near-instantaneous (<0.4s) developer feedback loops on single-file edits.",
+            "- **Developer Feedback Loop**: Go delivers near-instantaneous (~0.49s) incremental feedback loops on code changes. Rust takes ~4.9s (~10x slower), Zig takes ~11.2s (~23x slower), and C++ takes ~13.5s (~27x slower) due to header template re-evaluation.",
             "- **CGO Impact**: `CGO_ENABLED=0` produces a completely standalone static binary (5.91 MB) without glibc runtime linkage dependencies, while `CGO_ENABLED=1` produces a dynamically linked binary (5.95 MB).",
-            "- **Binary Footprint**: C++ produces the most compact binary footprint (~0.5 MB), followed by Rust (~1.6 MB) and Zig (~2.3 MB). Go bundles its runtime and GC at ~5.9 MB.",
+            "- **Binary Footprint**: C++ produces the most compact binary footprint (~0.5 MB, 0.4 MB stripped), followed by Rust (~1.6 MB, 1.2 MB stripped) and Zig (~2.3 MB, 0.28 MB static stripped). Go bundles its runtime and GC at ~5.9 MB.",
             "",
             "## Implementations Overview",
             "- **Go** (`implementations/go`): Standard library `net/http` + `log/slog` structured JSON + Prometheus `/metrics` exposition (evaluated under both `CGO_ENABLED=0` and `CGO_ENABLED=1`).",
@@ -331,7 +322,7 @@ def generate_markdown_report(benchmark_data, host_info):
 def main():
     parser = argparse.ArgumentParser(description="albench compile time benchmarking suite")
     parser.add_argument("--langs", default="go,go-cgo,rust,zig,cpp", help="Comma-separated language keys to benchmark")
-    parser.add_argument("--iterations", type=int, default=3, help="Number of warm clean iterations")
+    parser.add_argument("--iterations", type=int, default=3, help="Number of incremental rebuild iterations")
     parser.add_argument("--no-cold", action="store_true", help="Skip cold build from zero")
     parser.add_argument("--output", default=str(REPO_ROOT / "results" / "benchmark.json"), help="Output JSON path")
     parser.add_argument("--update-readme", action="store_true", help="Update README.md with generated markdown table")
