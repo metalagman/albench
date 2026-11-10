@@ -238,41 +238,41 @@ def generate_markdown_report(benchmark_data, host_info):
 
         lines.extend([
             "",
-            "## Относительное сравнение производительности сборки (vs Go = 1.0x)",
+            "## Relative Compilation Performance (vs Go = 1.0x)",
             "",
-            "| Язык | Холодная сборка с нуля | Тёплая чистая сборка (Warm Clean) | Инкрементальная пересборка | Потребление памяти (Peak RSS) | Размер бинарника |",
+            "| Language | Cold Build from Zero | Warm Clean Build | Incremental Rebuild | Memory Usage (Peak RSS) | Binary Size |",
             "|---|---|---|---|---|---|",
         ])
 
         for item in benchmark_data:
             lang = item["language"]
             if lang.lower() == "go":
-                lines.append(f"| **{lang}** | **1.0x (база, {go_cold:.2f}s)** | **1.0x (база, {go_warm:.3f}s)** | **1.0x (база, {go_inc:.3f}s)** | **{go_rss:.1f} MB (база)** | {go_size:.2f} MB (база) |")
+                lines.append(f"| **{lang}** | **1.0x (baseline, {go_cold:.2f}s)** | **1.0x (baseline, {go_warm:.3f}s)** | **1.0x (baseline, {go_inc:.3f}s)** | **{go_rss:.1f} MB (baseline)** | {go_size:.2f} MB (baseline) |")
             else:
                 cold_val = item["cold_build"]["duration_sec"] if item.get("cold_build") else None
-                cold_str = f"+{((cold_val - go_cold) / go_cold * 100):.1f}% ({cold_val / go_cold:.1f}x медленнее)" if cold_val else "-"
+                cold_str = f"+{((cold_val - go_cold) / go_cold * 100):.1f}% ({cold_val / go_cold:.1f}x slower)" if cold_val else "-"
                 
                 warm_val = item["warm_clean"]["mean_sec"]
-                warm_str = f"+{((warm_val - go_warm) / go_warm * 100):.1f}% ({warm_val / go_warm:.1f}x медленнее)"
+                warm_str = f"+{((warm_val - go_warm) / go_warm * 100):.1f}% ({warm_val / go_warm:.1f}x slower)"
                 
                 inc_val = item["incremental_build"]["duration_sec"]
-                inc_str = f"+{((inc_val - go_inc) / go_inc * 100):.1f}% ({inc_val / go_inc:.1f}x медленнее)"
+                inc_str = f"+{((inc_val - go_inc) / go_inc * 100):.1f}% ({inc_val / go_inc:.1f}x slower)"
                 
                 rss_val = item["warm_clean"]["peak_rss_mb"]
-                rss_str = f"+{((rss_val - go_rss) / go_rss * 100):.1f}% ({rss_val / go_rss:.1f}x больше)"
+                rss_str = f"+{((rss_val - go_rss) / go_rss * 100):.1f}% ({rss_val / go_rss:.1f}x more)"
                 
                 size_val = item["binary"]["size_mb"]
                 size_diff = ((size_val - go_size) / go_size) * 100
-                size_str = f"{size_diff:+.1f}% (в {go_size / size_val:.1f}x компактнее)"
+                size_str = f"{size_diff:+.1f}% ({go_size / size_val:.1f}x smaller)"
 
                 lines.append(f"| **{lang}** | {cold_str} | {warm_str} | {inc_str} | {rss_str} | {size_str} |")
 
     lines.extend([
         "",
-        "### Потребление ресурсов компиляторами (Resource Footprint)",
-        "- **Оперативная память (RAM)**: Go использует всего **121.6 МБ** пиковой памяти. C++ требует **552.6 МБ** (+354%), Rust — **405.6 МБ** (+233%), а Zig — **387.9 МБ** (+219%). На слабых CI/CD раннерах (1-2 ГБ RAM) C++ и Rust легко могут вызвать OOM при параллельной сборке нескольких таргетов.",
-        "- **Дисковый кэш и артефакты**: Папка `target/` в Rust при компиляции даже простого веб-сервиса разрастается до **628 МБ** (более 1800 скомпилированных промежуточных файлов). Кэш Go для аналогичного функционала занимает считанные мегабайты.",
-        "- **Нагрузка на CPU**: Компилятор Go спроектирован для линейного парсинга без перегрузки шаблонов и макросов, тогда как C++ и Rust активно нагружают процессор AST-экспансией, мономорфизацией шаблонов и оптимизационными проходами LLVM.",
+        "### Compiler Resource Footprint",
+        "- **Memory Footprint (RAM)**: Go requires only **121.6 MB** peak RSS. In comparison, C++ consumes **552.6 MB** (+354%), Rust consumes **405.6 MB** (+233%), and Zig consumes **387.9 MB** (+219%). On resource-constrained CI/CD runners (1–2 GB RAM), C++ and Rust can easily cause Out-Of-Memory (OOM) failures under parallel job execution.",
+        "- **Disk Artifacts & Build Cache**: Rust's `target/` directory balloons to **628.6 MB** across 1,835 intermediate files for a simple web service. Go's build cache footprint remains minimal, avoiding heavy I/O overhead.",
+        "- **CPU Overhead**: Go's compiler is engineered for linear single-pass parsing without template/macro expansion. In contrast, C++ and Rust saturate CPU cores with deep template metaprogramming, monomorphization, borrow checking, and aggressive LLVM optimization passes.",
         "",
         "### Key Takeaways",
         "- **Compile Speed**: Go and Zig demonstrate order-of-magnitude faster clean compilation times compared to C++ and Rust.",

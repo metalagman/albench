@@ -17,19 +17,19 @@ Automated compile-time benchmark comparing **Go**, **Rust**, **Zig**, and **C++*
 | **Zig** | 14.57 | 14.130 | 14.130 | ±1.810 | 7.380 | 387.9 | 2.25 | 0.28 |
 | **C++** | 12.93 | 11.415 | 11.415 | ±1.860 | 12.660 | 552.6 | 0.54 | 0.4 |
 
-## Относительное сравнение производительности сборки (vs Go = 1.0x)
+## Relative Compilation Performance (vs Go = 1.0x)
 
-| Язык | Холодная сборка с нуля | Тёплая чистая сборка (Warm Clean) | Инкрементальная пересборка | Потребление памяти (Peak RSS) | Размер бинарника |
+| Language | Cold Build from Zero | Warm Clean Build | Incremental Rebuild | Memory Usage (Peak RSS) | Binary Size |
 |---|---|---|---|---|---|
-| **Go** | **1.0x (база, 10.80s)** | **1.0x (база, 0.330s)** | **1.0x (база, 0.350s)** | **121.6 MB (база)** | 5.95 MB (база) |
-| **Rust** | +73.6% (1.7x медленнее) | +1589.4% (16.9x медленнее) | +1194.3% (12.9x медленнее) | +233.4% (3.3x больше) | -73.8% (в 3.8x компактнее) |
-| **Zig** | +34.9% (1.3x медленнее) | +4181.8% (42.8x медленнее) | +2008.6% (21.1x медленнее) | +218.9% (3.2x больше) | -62.2% (в 2.6x компактнее) |
-| **C++** | +19.7% (1.2x медленнее) | +3359.1% (34.6x медленнее) | +3517.1% (36.2x медленнее) | +354.3% (4.5x больше) | -90.9% (в 11.0x компактнее) |
+| **Go** | **1.0x (baseline, 10.80s)** | **1.0x (baseline, 0.330s)** | **1.0x (baseline, 0.350s)** | **121.6 MB (baseline)** | 5.95 MB (baseline) |
+| **Rust** | +73.6% (1.7x slower) | +1589.4% (16.9x slower) | +1194.3% (12.9x slower) | +233.4% (3.3x more) | -73.8% (3.8x smaller) |
+| **Zig** | +34.9% (1.3x slower) | +4181.8% (42.8x slower) | +2008.6% (21.1x slower) | +218.9% (3.2x more) | -62.2% (2.6x smaller) |
+| **C++** | +19.7% (1.2x slower) | +3359.1% (34.6x slower) | +3517.1% (36.2x slower) | +354.3% (4.5x more) | -90.9% (11.0x smaller) |
 
-### Потребление ресурсов компиляторами (Resource Footprint)
-- **Оперативная память (RAM)**: Go использует всего **121.6 МБ** пиковой памяти. C++ требует **552.6 МБ** (+354%), Rust — **405.6 МБ** (+233%), а Zig — **387.9 МБ** (+219%). На слабых CI/CD раннерах (1-2 ГБ RAM) C++ и Rust легко могут вызвать OOM при параллельной сборке нескольких таргетов.
-- **Дисковый кэш и артефакты**: Папка `target/` в Rust при компиляции даже простого веб-сервиса разрастается до **628 МБ** (более 1800 скомпилированных промежуточных файлов). Кэш Go для аналогичного функционала занимает считанные мегабайты.
-- **Нагрузка на CPU**: Компилятор Go спроектирован для линейного парсинга без перегрузки шаблонов и макросов, тогда как C++ и Rust активно нагружают процессор AST-экспансией, мономорфизацией шаблонов и оптимизационными проходами LLVM.
+### Compiler Resource Footprint
+- **Memory Footprint (RAM)**: Go requires only **121.6 MB** peak RSS. In comparison, C++ consumes **552.6 MB** (+354%), Rust consumes **405.6 MB** (+233%), and Zig consumes **387.9 MB** (+219%). On resource-constrained CI/CD runners (1–2 GB RAM), C++ and Rust can easily cause Out-Of-Memory (OOM) failures under parallel job execution.
+- **Disk Artifacts & Build Cache**: Rust's `target/` directory balloons to **628.6 MB** across 1,835 intermediate files for a simple web service. Go's build cache footprint remains minimal, avoiding heavy I/O overhead.
+- **CPU Overhead**: Go's compiler is engineered for linear single-pass parsing without template/macro expansion. In contrast, C++ and Rust saturate CPU cores with deep template metaprogramming, monomorphization, borrow checking, and aggressive LLVM optimization passes.
 
 ### Key Takeaways
 - **Compile Speed**: Go and Zig demonstrate order-of-magnitude faster clean compilation times compared to C++ and Rust.
