@@ -3,30 +3,30 @@
     "os": "Linux",
     "kernel": "6.18.26.1-microsoft-standard-WSL2",
     "cpu": "x86_64",
-    "date": "2026-11-10 08:21:29 UTC"
+    "date": "2026-11-10 08:56:46 UTC"
   },
   "results": [
     {
       "language": "Go (CGO=0)",
       "cold_build": {
-        "duration_sec": 10.59,
-        "peak_rss_mb": 286.06
+        "duration_sec": 10.789,
+        "peak_rss_mb": 320.89
       },
       "noop_build": {
-        "duration_sec": 0.1
+        "duration_sec": 0.113
       },
       "incremental_build": {
         "runs_sec": [
-          0.37,
-          0.31,
-          0.36
+          0.351,
+          0.386,
+          0.33
         ],
-        "min_sec": 0.31,
-        "max_sec": 0.37,
-        "mean_sec": 0.347,
-        "median_sec": 0.36,
-        "stddev_sec": 0.032,
-        "peak_rss_mb": 120.68
+        "min_sec": 0.33,
+        "max_sec": 0.386,
+        "mean_sec": 0.355,
+        "median_sec": 0.351,
+        "stddev_sec": 0.028,
+        "peak_rss_mb": 148.11
       },
       "binary": {
         "size_bytes": 6193314,
@@ -39,24 +39,24 @@
     {
       "language": "Go (CGO=1)",
       "cold_build": {
-        "duration_sec": 10.51,
-        "peak_rss_mb": 297.94
+        "duration_sec": 11.55,
+        "peak_rss_mb": 322.66
       },
       "noop_build": {
-        "duration_sec": 0.11
+        "duration_sec": 0.105
       },
       "incremental_build": {
         "runs_sec": [
-          0.41,
-          0.39,
-          0.37
+          0.416,
+          0.502,
+          0.518
         ],
-        "min_sec": 0.37,
-        "max_sec": 0.41,
-        "mean_sec": 0.39,
-        "median_sec": 0.39,
-        "stddev_sec": 0.02,
-        "peak_rss_mb": 125.93
+        "min_sec": 0.416,
+        "max_sec": 0.518,
+        "mean_sec": 0.479,
+        "median_sec": 0.502,
+        "stddev_sec": 0.055,
+        "peak_rss_mb": 149.88
       },
       "binary": {
         "size_bytes": 6242569,
@@ -69,24 +69,24 @@
     {
       "language": "Rust (Release LTO)",
       "cold_build": {
-        "duration_sec": 16.76,
-        "peak_rss_mb": 427.27
+        "duration_sec": 23.501,
+        "peak_rss_mb": 1270.95
       },
       "noop_build": {
-        "duration_sec": 0.04
+        "duration_sec": 0.064
       },
       "incremental_build": {
         "runs_sec": [
-          5.26,
-          5.88,
-          4.48
+          5.419,
+          5.304,
+          5.977
         ],
-        "min_sec": 4.48,
-        "max_sec": 5.88,
-        "mean_sec": 5.207,
-        "median_sec": 5.26,
-        "stddev_sec": 0.702,
-        "peak_rss_mb": 319.26
+        "min_sec": 5.304,
+        "max_sec": 5.977,
+        "mean_sec": 5.567,
+        "median_sec": 5.419,
+        "stddev_sec": 0.36,
+        "peak_rss_mb": 352.24
       },
       "binary": {
         "size_bytes": 1635944,
@@ -99,24 +99,24 @@
     {
       "language": "Rust (Mold + No-LTO)",
       "cold_build": {
-        "duration_sec": 14.6,
-        "peak_rss_mb": 431.57
+        "duration_sec": 18.319,
+        "peak_rss_mb": 1356.22
       },
       "noop_build": {
-        "duration_sec": 0.05
+        "duration_sec": 0.076
       },
       "incremental_build": {
         "runs_sec": [
-          0.22,
-          0.23,
-          0.21
+          0.285,
+          0.303,
+          0.32
         ],
-        "min_sec": 0.21,
-        "max_sec": 0.23,
-        "mean_sec": 0.22,
-        "median_sec": 0.22,
-        "stddev_sec": 0.01,
-        "peak_rss_mb": 225.76
+        "min_sec": 0.285,
+        "max_sec": 0.32,
+        "mean_sec": 0.303,
+        "median_sec": 0.303,
+        "stddev_sec": 0.018,
+        "peak_rss_mb": 260.47
       },
       "binary": {
         "size_bytes": 2255424,
@@ -129,24 +129,24 @@
     {
       "language": "Zig",
       "cold_build": {
-        "duration_sec": 11.84,
-        "peak_rss_mb": 388.14
+        "duration_sec": 15.943,
+        "peak_rss_mb": 388.15
       },
       "noop_build": {
-        "duration_sec": 0.01
+        "duration_sec": 0.02
       },
       "incremental_build": {
         "runs_sec": [
-          7.25,
-          7.74,
-          7.88
+          8.769,
+          8.59,
+          8.418
         ],
-        "min_sec": 7.25,
-        "max_sec": 7.88,
-        "mean_sec": 7.623,
-        "median_sec": 7.74,
-        "stddev_sec": 0.331,
-        "peak_rss_mb": 190.98
+        "min_sec": 8.418,
+        "max_sec": 8.769,
+        "mean_sec": 8.592,
+        "median_sec": 8.59,
+        "stddev_sec": 0.176,
+        "peak_rss_mb": 229.58
       },
       "binary": {
         "size_bytes": 2357560,
@@ -159,24 +159,24 @@
     {
       "language": "C++",
       "cold_build": {
-        "duration_sec": 11.48,
-        "peak_rss_mb": 552.91
+        "duration_sec": 12.1,
+        "peak_rss_mb": 561.43
       },
       "noop_build": {
-        "duration_sec": 0.0
+        "duration_sec": 0.007
       },
       "incremental_build": {
         "runs_sec": [
-          9.94,
-          11.81,
-          10.79
+          12.276,
+          12.139,
+          12.051
         ],
-        "min_sec": 9.94,
-        "max_sec": 11.81,
-        "mean_sec": 10.847,
-        "median_sec": 10.79,
-        "stddev_sec": 0.936,
-        "peak_rss_mb": 552.72
+        "min_sec": 12.051,
+        "max_sec": 12.276,
+        "mean_sec": 12.155,
+        "median_sec": 12.139,
+        "stddev_sec": 0.113,
+        "peak_rss_mb": 561.94
       },
       "binary": {
         "size_bytes": 570160,

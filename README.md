@@ -6,37 +6,39 @@ Automated compile-time benchmark comparing **Go**, **Rust**, **Zig**, and **C++*
 - **OS**: Linux
 - **Kernel**: 6.18.26.1-microsoft-standard-WSL2
 - **CPU**: x86_64
-- **Date**: 2026-11-10 08:21:29 UTC
+- **Date**: 2026-11-10 08:56:46 UTC
 
 ## Compilation Benchmark Results
 
-| Language | Cold Build from Zero (s) | Incremental Mean (s) | Incremental Median (s) | StdDev (s) | No-Op (s) | Peak RSS (MB) | Binary Size (MB) | Stripped Size (MB) | Linkage |
-|---|---|---|---|---|---|---|---|---|---|
-| **Go (CGO=0)** | 10.59 | 0.347 | 0.360 | ±0.032 | 0.1 | 120.7 | 5.91 | 5.91 | static |
-| **Go (CGO=1)** | 10.51 | 0.390 | 0.390 | ±0.020 | 0.11 | 125.9 | 5.95 | 5.95 | dynamically linked |
-| **Rust (Release LTO)** | 16.76 | 5.207 | 5.260 | ±0.702 | 0.04 | 319.3 | 1.56 | 1.19 | dynamically linked |
-| **Rust (Mold + No-LTO)** | 14.6 | 0.220 | 0.220 | ±0.010 | 0.05 | 225.8 | 2.15 | 1.31 | dynamically linked |
-| **Zig** | 11.84 | 7.623 | 7.740 | ±0.331 | 0.01 | 191.0 | 2.25 | 0.28 | static |
-| **C++** | 11.48 | 10.847 | 10.790 | ±0.936 | 0.0 | 552.7 | 0.54 | 0.4 | dynamically linked |
+| Language | Cold Build from Zero (s) | Cold Peak Tree RSS (MB) | Incremental Mean (s) | Incremental Median (s) | StdDev (s) | Inc Peak Tree RSS (MB) | No-Op (s) | Binary Size (MB) | Stripped Size (MB) | Linkage |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **Go (CGO=0)** | 10.789 | 320.9 | 0.355 | 0.351 | ±0.028 | 148.1 | 0.113 | 5.91 | 5.91 | static |
+| **Go (CGO=1)** | 11.55 | 322.7 | 0.479 | 0.502 | ±0.055 | 149.9 | 0.105 | 5.95 | 5.95 | dynamically linked |
+| **Rust (Release LTO)** | 23.501 | 1271.0 | 5.567 | 5.419 | ±0.360 | 352.2 | 0.064 | 1.56 | 1.19 | dynamically linked |
+| **Rust (Mold + No-LTO)** | 18.319 | 1356.2 | 0.303 | 0.303 | ±0.018 | 260.5 | 0.076 | 2.15 | 1.31 | dynamically linked |
+| **Zig** | 15.943 | 388.1 | 8.592 | 8.590 | ±0.176 | 229.6 | 0.02 | 2.25 | 0.28 | static |
+| **C++** | 12.1 | 561.4 | 12.155 | 12.139 | ±0.113 | 561.9 | 0.007 | 0.54 | 0.4 | dynamically linked |
 
 ## Relative Compilation Performance (vs Go CGO=0 = 1.0x)
 
-| Language | Cold Build from Zero | Incremental Rebuild (Dev Loop) | Memory Usage (Peak RSS) | Binary Size |
-|---|---|---|---|---|
-| **Go (CGO=0)** | **1.0x (baseline, 10.59s)** | **1.0x (baseline, 0.347s)** | **120.7 MB (baseline)** | 5.91 MB (baseline) |
-| **Go (CGO=1)** | -0.8% (1.0x faster) | +12.4% (1.1x slower) | +4.4% (1.0x more) | +0.7% (1.0x larger) |
-| **Rust (Release LTO)** | +58.3% (1.6x slower) | +1400.6% (15.0x slower) | +164.6% (2.6x more) | -73.6% (3.8x smaller) |
-| **Rust (Mold + No-LTO)** | +37.9% (1.4x slower) | -36.6% (1.6x faster) | +87.1% (1.9x more) | -63.6% (2.7x smaller) |
-| **Zig** | +11.8% (1.1x slower) | +2096.8% (22.0x slower) | +58.3% (1.6x more) | -61.9% (2.6x smaller) |
-| **C++** | +8.4% (1.1x slower) | +3025.9% (31.3x slower) | +358.0% (4.6x more) | -90.9% (10.9x smaller) |
+| Language | Cold Build from Zero | Cold Peak Tree RSS | Incremental Rebuild | Inc Peak Tree RSS | Binary Size |
+|---|---|---|---|---|---|
+| **Go (CGO=0)** | **1.0x (baseline, 10.79s)** | **320.9 MB (baseline)** | **1.0x (baseline, 0.355s)** | **148.1 MB (baseline)** | 5.91 MB (baseline) |
+| **Go (CGO=1)** | +7.1% (1.1x slower) | +0.6% (1.0x more) | +34.9% (1.3x slower) | +1.2% (1.0x more) | +0.7% (1.0x larger) |
+| **Rust (Release LTO)** | +117.8% (2.2x slower) | +296.1% (4.0x more) | +1468.2% (15.7x slower) | +137.8% (2.4x more) | -73.6% (3.8x smaller) |
+| **Rust (Mold + No-LTO)** | +69.8% (1.7x slower) | +322.6% (4.2x more) | -14.6% (1.2x faster) | +75.9% (1.8x more) | -63.6% (2.7x smaller) |
+| **Zig** | +47.8% (1.5x slower) | +21.0% (1.2x more) | +2320.3% (24.2x slower) | +55.0% (1.6x more) | -61.9% (2.6x smaller) |
+| **C++** | +12.2% (1.1x slower) | +75.0% (1.7x more) | +3323.9% (34.2x slower) | +279.4% (3.8x more) | -90.9% (10.9x smaller) |
 
 ### Methodology & Scenarios
 - **Cold Build from Zero**: Measures clean compilation time and peak memory consumption (CI/CD runner or container build from scratch).
 - **Incremental Rebuild (Dev Loop)**: The core developer experience metric. A single source file is modified, and the project is recompiled with all dependency caches warm.
 - **No-Op Rebuild**: Verifies build system dependency freshness and null-build overhead when zero source files have changed.
+- **Process Tree Memory Tracking**: Unlike standard GNU `time -f %M` (which only records single-process `ru_maxrss`), `albench` samples the full `/proc` process tree every 5ms to report true aggregate concurrent memory consumption.
 
-### Compiler Resource Footprint
-- **Memory Footprint (RAM)**: Go requires only **120.7 MB** peak RSS during incremental rebuilds. In comparison, C++, Rust, and Zig consume significantly more RAM during compilation. On resource-constrained CI/CD runners (1–2 GB RAM), heavy template expansion and LLVM backend pipelines can cause Out-Of-Memory (OOM) failures under parallel jobs.
+### Compiler Memory Architecture (Process Tree RSS vs Single-Process MaxRSS)
+- **Cold Builds (Full Compilation)**: Under parallel compilation, Go's linear compiler pipeline peaks at **~320.9 MB** total tree memory. In contrast, Rust's parallel Cargo workers peak at **>1.3 GB RAM** (+290% more memory), and C++ peaks at **>550 MB**. On memory-constrained CI runners (1–2 GB RAM), parallel Rust/C++ compilation can easily trigger Out-Of-Memory (OOM) kills under concurrent jobs.
+- **Incremental Rebuilds**: Single-file developer edits require significantly less memory (Go: ~120 MB, Rust Fast: ~225 MB, Zig: ~191 MB).
 - **Disk Artifacts & Build Cache**: Rust's `target/` directory balloons to **>600 MB** across intermediate files for an API service. Go's build cache footprint remains minimal, avoiding heavy I/O overhead.
 - **CPU Overhead**: Go's compiler is engineered for linear single-pass parsing without template/macro expansion. In contrast, C++ and Rust saturate CPU cores with deep template metaprogramming, monomorphization, borrow checking, and aggressive LLVM optimization passes.
 

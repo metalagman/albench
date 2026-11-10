@@ -4,6 +4,7 @@
 # Build artifacts
 implementations/go/bin/
 implementations/rust/target/
+implementations/rust/target_fast/
 implementations/zig/zig-out/
 implementations/zig/.zig-cache/
 implementations/cpp/build/
