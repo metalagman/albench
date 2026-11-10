@@ -37,19 +37,19 @@ Automated compile-time benchmark comparing **Go**, **Rust**, **Zig**, and **C++*
 - **Process Tree Memory Tracking**: Unlike standard GNU `time -f %M` (which only records single-process `ru_maxrss`), `albench` samples the full `/proc` process tree every 5ms to report true aggregate concurrent memory consumption.
 
 ### Compiler Memory Architecture (Process Tree RSS vs Single-Process MaxRSS)
-- **Cold Builds (Full Compilation)**: Under parallel compilation, Go's linear compiler pipeline peaks at **~320.9 MB** total tree memory. In contrast, Rust's parallel Cargo workers peak at **>1.3 GB RAM** (+290% more memory), and C++ peaks at **>550 MB**. On memory-constrained CI runners (1–2 GB RAM), parallel Rust/C++ compilation can easily trigger Out-Of-Memory (OOM) kills under concurrent jobs.
-- **Incremental Rebuilds**: Single-file developer edits require significantly less memory (Go: ~120 MB, Rust Fast: ~225 MB, Zig: ~191 MB).
+- **Cold Builds (Full Compilation)**: Under parallel compilation, Go's linear compiler pipeline peaks at **~320.9 MB** total tree memory. In contrast, Rust's parallel Cargo workers peak at **>1.3 GB RAM** (+290% more memory), and C++ peaks at **>560 MB**. On memory-constrained CI runners (1–2 GB RAM), parallel Rust/C++ compilation can easily trigger Out-Of-Memory (OOM) kills under concurrent jobs.
+- **Incremental Rebuilds**: Single-file developer edits require significantly less memory across toolchains (Go: ~148 MB, Rust Fast: ~260 MB, Zig: ~230 MB, C++: ~562 MB).
 - **Disk Artifacts & Build Cache**: Rust's `target/` directory balloons to **>600 MB** across intermediate files for an API service. Go's build cache footprint remains minimal, avoiding heavy I/O overhead.
 - **CPU Overhead**: Go's compiler is engineered for linear single-pass parsing without template/macro expansion. In contrast, C++ and Rust saturate CPU cores with deep template metaprogramming, monomorphization, borrow checking, and aggressive LLVM optimization passes.
 
 ### Key Takeaways
-- **Developer Feedback Loop**: Go delivers near-instantaneous (~0.35s) incremental feedback loops on code changes. Standard Rust with ThinLTO takes ~5.2s (~15x slower), Zig takes ~7.6s (~22x slower), and C++ takes ~10.8s (~31x slower).
-- **Optimizing Rust for Dev Speed**: By disabling LTO (`lto = 'off'`), increasing codegen units (`codegen-units = 16`), enabling incremental builds, and switching to the high-performance `mold` linker, Rust incremental rebuilds drop dramatically to **~0.22s** — outperforming pure Go in developer iteration speed while producing a ~1.3 MB stripped binary.
+- **Developer Feedback Loop**: Go delivers near-instantaneous (~0.35s) incremental feedback loops on code changes. Standard Rust with ThinLTO takes ~5.6s, Zig takes ~8.6s, and C++ takes ~12.2s.
+- **Optimizing Rust for Dev Speed**: By disabling LTO (`lto = 'off'`), increasing codegen units (`codegen-units = 16`), enabling incremental builds, and switching to the high-performance `mold` linker, Rust incremental rebuilds drop dramatically to **~0.30s** — outperforming pure Go in developer iteration speed while producing a ~1.3 MB stripped binary.
 - **CGO Impact**: `CGO_ENABLED=0` produces a completely standalone static binary (5.91 MB) without glibc runtime linkage dependencies, while `CGO_ENABLED=1` produces a dynamically linked binary (5.95 MB).
 - **Binary Footprint**: C++ produces the most compact binary footprint (~0.5 MB, 0.4 MB stripped), followed by Rust (~1.6 MB, 1.2 MB stripped) and Zig (~2.3 MB, 0.28 MB static stripped). Go bundles its runtime and GC at ~5.9 MB.
 
-### Closing the Developer Loop Gap in Rust (5.2s -> 0.22s)
-By default in release mode, Cargo enables whole-program LTO passes (`lto = 'thin'`) and serializes LLVM codegen (`codegen-units = 1`), causing single-line modifications in the server binary to take **~5.2s**.
+### Closing the Developer Loop Gap in Rust (5.6s -> 0.30s)
+By default in release mode, Cargo enables whole-program LTO passes (`lto = 'thin'`) and serializes LLVM codegen (`codegen-units = 1`), causing single-line modifications in the server binary to take **~5.6s**.
 
 By configuring a fast developer profile in `Cargo.toml`:
 ```toml
@@ -62,7 +62,7 @@ incremental = true
 panic = "abort"
 ```
 and pairing it with the modern high-performance linker **`mold`** (`RUSTFLAGS="-C link-arg=-fuse-ld=mold"`):
-- **Incremental rebuild time drops 24x**: from **5.21s** down to **0.22s** (1.6x faster than pure Go at 0.35s).
+- **Incremental rebuild time drops dramatically**: from **5.57s** down to **0.30s** (faster than pure Go at 0.35s).
 - **Binary size penalty is minimal**: the stripped executable only grows from **1.19 MB** to **1.31 MB** (+120 KB), preserving production performance while unlocking sub-second developer feedback loops.
 
 ## Implementations Overview
